@@ -6,12 +6,12 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
-#include <immintrin.h> 
-#include <thread>      
+#include <immintrin.h>
+#include <thread>
 #include <vector>
 
 #include "RNG.h"
-#include "ThreadPool.h" 
+#include "ThreadPool.h"
 #include "colour.h"
 #include "light.h"
 #include "matrix.h"
@@ -197,8 +197,10 @@ void render(Renderer &renderer, Mesh *mesh, matrix &camera, Light &L) {
       t[i].normal.normalise();
 
       // Map normalized device coordinates to screen space
-      t[i].p[0] = (t[i].p[0] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getWidth());
-      t[i].p[1] = (t[i].p[1] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getHeight());
+      t[i].p[0] = (t[i].p[0] + 1.f) * 0.5f *
+                  static_cast<float>(renderer.canvas.getWidth());
+      t[i].p[1] = (t[i].p[1] + 1.f) * 0.5f *
+                  static_cast<float>(renderer.canvas.getHeight());
       t[i].p[1] = renderer.canvas.getHeight() - t[i].p[1]; // Invert y-axis
 
       // Copy vertex colours
@@ -206,7 +208,8 @@ void render(Renderer &renderer, Mesh *mesh, matrix &camera, Light &L) {
     }
 
     // Clip triangles with Z-values outside [-1, 1]
-    if (fabs(t[0].p[2]) > 1.0f || fabs(t[1].p[2]) > 1.0f || fabs(t[2].p[2]) > 1.0f)
+    if (fabs(t[0].p[2]) > 1.0f || fabs(t[1].p[2]) > 1.0f ||
+        fabs(t[2].p[2]) > 1.0f)
       continue;
 
     // Create a triangle object and render it
@@ -221,7 +224,8 @@ void renderSoA(Renderer &renderer, MeshSoA &mesh, matrix &camera, Light &L) {
   matrix p = renderer.perspective * camera * mesh.world;
 
   const float halfWidth = static_cast<float>(renderer.canvas.getWidth()) * 0.5f;
-  const float halfHeight = static_cast<float>(renderer.canvas.getHeight()) * 0.5f;
+  const float halfHeight =
+      static_cast<float>(renderer.canvas.getHeight()) * 0.5f;
   const float screenHeight = static_cast<float>(renderer.canvas.getHeight());
 
   // Iterate through all triangles
@@ -257,7 +261,8 @@ void renderSoA(Renderer &renderer, MeshSoA &mesh, matrix &camera, Light &L) {
     }
 
     // Clip triangles with Z-values outside [-1, 1]
-    if (fabs(t[0].p[2]) > 1.0f || fabs(t[1].p[2]) > 1.0f || fabs(t[2].p[2]) > 1.0f)
+    if (fabs(t[0].p[2]) > 1.0f || fabs(t[1].p[2]) > 1.0f ||
+        fabs(t[2].p[2]) > 1.0f)
       continue;
 
     // Create a triangle object and render it
@@ -354,7 +359,7 @@ void renderSoA_SIMD(Renderer &renderer, MeshSoA &mesh, matrix &camera,
   }
 }
 
-// Use alignas(64) to ensure 64-byte alignment 
+// Use alignas(64) to ensure 64-byte alignment
 // Add padding to fill the entire cache line
 struct alignas(64) ThreadStats {
   long trianglesProcessed = 0;
@@ -477,11 +482,11 @@ void renderSoA_MT(Renderer &renderer, std::vector<MeshSoA> &meshes,
     localL.omega_i.normalise();
 
     while (true) {
-      // Atomically grab next tile index 
+      // Atomically grab next tile index
       int myTileIdx = nextTileIndex.fetch_add(1, std::memory_order_relaxed);
 
       if (myTileIdx >= totalTiles)
-        break; 
+        break;
 
       // Compute tile position from linear index
       int tx = (myTileIdx % numTilesX) * tileSize;
@@ -520,7 +525,7 @@ void renderSoA_MT(Renderer &renderer, std::vector<MeshSoA> &meshes,
           triangle tri(t[0], t[1], t[2]);
           tri.drawSIMD_Tiled(renderer, localL, tm.ka, tm.kd, tx, ty, tw, th);
 
-          // Update per-thread stats 
+          // Update per-thread stats
           stats[workerId].trianglesProcessed++;
         }
       }
@@ -570,7 +575,8 @@ void sceneTest() {
     renderer.clear();             // Clear the canvas for the next frame
 
     // Apply transformations to the meshes
-    // mesh2.world = matrix::makeTranslation(x, y, z) * matrix::makeRotateX(0.01f);
+    // mesh2.world = matrix::makeTranslation(x, y, z) *
+    // matrix::makeRotateX(0.01f);
     mesh.world = matrix::makeTranslation(x, y, z);
 
     // Handle user inputs for transformations
@@ -620,8 +626,7 @@ matrix makeRandomRotation() {
 void scene1() {
   Renderer renderer;
   matrix camera;
-  Light L{vec4(0.f, 1.f, 1.f, 0.f), colour(1.0f, 1.0f, 1.0f),
-          colour(0.2f, 0.2f, 0.2f)};
+  Light L{vec4(0.f, 1.f, 1.f, 0.f), colour(1.0f, 1.0f, 1.0f), colour(0.2f, 0.2f, 0.2f)};
 
   bool running = true;
 
@@ -631,34 +636,24 @@ void scene1() {
   // Create a scene of 40 cubes with random rotations
   for (unsigned int i = 0; i < 20; i++) {
     Mesh m1 = Mesh::makeCube(1.f);
-    m1.world =
-        matrix::makeTranslation(-2.0f, 0.0f, (-3 * static_cast<float>(i))) *
-        makeRandomRotation();
+    m1.world = matrix::makeTranslation(-2.0f, 0.0f, (-3 * static_cast<float>(i))) * makeRandomRotation();
     sceneSoA.push_back(MeshSoA::fromMesh(m1));
 
     Mesh m2 = Mesh::makeCube(1.f);
-    m2.world =
-        matrix::makeTranslation(2.0f, 0.0f, (-3 * static_cast<float>(i))) *
-        makeRandomRotation();
+    m2.world = matrix::makeTranslation(2.0f, 0.0f, (-3 * static_cast<float>(i))) *
+               makeRandomRotation();
     sceneSoA.push_back(MeshSoA::fromMesh(m2));
   }
 
   float zoffset = 8.0f; // Initial camera Z-offset
   float step = -0.1f;   // Step size for camera movement
 
-  // Measure each frame's render time
-  // Calculate running average for stable metrics
-  int frameCount = 0;
-  double totalFrameTime = 0.0;
-  auto frameStart = std::chrono::high_resolution_clock::now();
-
-  auto cycleStart = std::chrono::high_resolution_clock::now();
-  std::chrono::time_point<std::chrono::high_resolution_clock> cycleEnd;
+  auto start = std::chrono::high_resolution_clock::now();
+  std::chrono::time_point<std::chrono::high_resolution_clock> end;
   int cycle = 0;
 
   // Main rendering loop
   while (running) {
-    frameStart = std::chrono::high_resolution_clock::now();
 
     renderer.canvas.checkInput();
     renderer.clear();
@@ -676,42 +671,17 @@ void scene1() {
     if (zoffset < -60.f || zoffset > 8.f) {
       step *= -1.f;
       if (++cycle % 2 == 0) {
-        cycleEnd = std::chrono::high_resolution_clock::now();
-        std::cout << "[Cycle " << cycle / 2 << "] Duration: "
-                  << std::chrono::duration<double, std::milli>(cycleEnd - cycleStart) .count()
-                  << " ms\n";
-        cycleStart = std::chrono::high_resolution_clock::now();
+        end = std::chrono::high_resolution_clock::now();
+        std::cout << cycle / 2 << " :"
+                  << std::chrono::duration<double, std::milli>(end - start).count()
+                  << "ms\n";
+        start = std::chrono::high_resolution_clock::now();
       }
     }
 
     // Use multi-threaded tile-based rendering with thread pool
     renderSoA_MT(renderer, sceneSoA, camera, L);
     renderer.present();
-
-    // Per-frame timing measurement
-    auto frameEnd = std::chrono::high_resolution_clock::now();
-    double frameTime = std::chrono::duration<double, std::milli>(frameEnd - frameStart) .count();
-    totalFrameTime += frameTime;
-    frameCount++;
-
-    // Print every 100 frames to avoid console spam
-    if (frameCount % 100 == 0) {
-      double avgFrameTime = totalFrameTime / frameCount;
-      std::cout << "[Scene1-SoA] Frame " << frameCount
-                << " | Last: " << frameTime << " ms"
-                << " | Avg: " << avgFrameTime << " ms"
-                << " | FPS: " << (1000.0 / avgFrameTime) << "\n";
-    }
-  }
-
-  // Final statistics
-  if (frameCount > 0) {
-    double avgFrameTime = totalFrameTime / frameCount;
-    std::cout << "\n========== Scene1-SoA Final Stats ==========\n";
-    std::cout << "Total Frames: " << frameCount << "\n";
-    std::cout << "Average Frame Time: " << avgFrameTime << " ms\n";
-    std::cout << "Average FPS: " << (1000.0 / avgFrameTime) << "\n";
-    std::cout << "=============================================\n";
   }
 }
 
@@ -737,8 +707,7 @@ void scene2() {
   for (unsigned int y = 0; y < 6; y++) {
     for (unsigned int x = 0; x < 8; x++) {
       Mesh m = Mesh::makeCube(1.f);
-      m.world = matrix::makeTranslation(-7.0f + (static_cast<float>(x) * 2.f),  
-                5.0f - (static_cast<float>(y) * 2.f), -8.f);
+      m.world = matrix::makeTranslation(-7.0f + (static_cast<float>(x) * 2.f), 5.0f - (static_cast<float>(y) * 2.f), -8.f);
       sceneSoA.push_back(MeshSoA::fromMesh(m));
       rRot r{rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f)};
       rotations.push_back(r);
@@ -753,17 +722,12 @@ void scene2() {
   sceneSoA.push_back(MeshSoA::fromMesh(sphereMesh));
   size_t sphereIdx = sceneSoA.size() - 1; // Index of sphere in SoA array
 
-  int frameCount = 0;
-  double totalFrameTime = 0.0;
-  auto frameStart = std::chrono::high_resolution_clock::now();
-
-  auto cycleStart = std::chrono::high_resolution_clock::now();
-  std::chrono::time_point<std::chrono::high_resolution_clock> cycleEnd;
+  auto start = std::chrono::high_resolution_clock::now();
+  std::chrono::time_point<std::chrono::high_resolution_clock> end;
   int cycle = 0;
 
   bool running = true;
   while (running) {
-    frameStart = std::chrono::high_resolution_clock::now();
 
     renderer.canvas.checkInput();
     renderer.clear();
@@ -774,15 +738,16 @@ void scene2() {
 
     // Move the sphere back and forth
     sphereOffset += sphereStep;
-    sceneSoA[sphereIdx].world = matrix::makeTranslation(sphereOffset, 0.f, -6.f);
+    sceneSoA[sphereIdx].world =
+        matrix::makeTranslation(sphereOffset, 0.f, -6.f);
     if (sphereOffset > 6.0f || sphereOffset < -6.0f) {
       sphereStep *= -1.f;
       if (++cycle % 2 == 0) {
-        cycleEnd = std::chrono::high_resolution_clock::now();
-        std::cout << "[Cycle " << cycle / 2 << "] Duration: " 
-                  << std::chrono::duration<double, std::milli>(cycleEnd - cycleStart) .count()
-                  << " ms\n";
-        cycleStart = std::chrono::high_resolution_clock::now();
+        end = std::chrono::high_resolution_clock::now();
+        std::cout << cycle / 2 << " :"
+                  << std::chrono::duration<double, std::milli>(end - start).count()
+                  << "ms\n";
+        start = std::chrono::high_resolution_clock::now();
       }
     }
 
@@ -792,40 +757,14 @@ void scene2() {
     // Use multi-threaded tile-based rendering with dynamic allocation
     renderSoA_MT(renderer, sceneSoA, camera, L);
     renderer.present();
-
-    // Per-frame timing measurement
-    auto frameEnd = std::chrono::high_resolution_clock::now();
-    double frameTime =
-        std::chrono::duration<double, std::milli>(frameEnd - frameStart)
-            .count();
-    totalFrameTime += frameTime;
-    frameCount++;
-
-    // Print every 100 frames to avoid console spam
-    if (frameCount % 100 == 0) {
-      double avgFrameTime = totalFrameTime / frameCount;
-      std::cout << "[Scene2-SoA] Frame " << frameCount
-                << " | Last: " << frameTime << " ms"
-                << " | Avg: " << avgFrameTime << " ms"
-                << " | FPS: " << (1000.0 / avgFrameTime) << "\n";
-    }
-  }
-
-  // Final statistics
-  if (frameCount > 0) {
-    double avgFrameTime = totalFrameTime / frameCount;
-    std::cout << "\n========== Scene2-SoA Final Stats ==========\n";
-    std::cout << "Total Frames: " << frameCount << "\n";
-    std::cout << "Average Frame Time: " << avgFrameTime << " ms\n";
-    std::cout << "Average FPS: " << (1000.0 / avgFrameTime) << "\n";
-    std::cout << "=============================================\n";
   }
 }
 // Spheres move in a wave pattern to ensure dynamic rendering
 void scene3() {
   Renderer renderer;
   matrix camera = matrix::makeIdentity();
-  Light L{vec4(0.f, 1.f, 1.f, 0.f), colour(1.0f, 1.0f, 1.0f), colour(0.2f, 0.2f, 0.2f)};
+  Light L{vec4(0.f, 1.f, 1.f, 0.f), colour(1.0f, 1.0f, 1.0f),
+          colour(0.2f, 0.2f, 0.2f)};
 
   std::vector<MeshSoA> sceneSoA;
   RandomNumberGenerator &rng = RandomNumberGenerator::getInstance();
@@ -865,29 +804,18 @@ void scene3() {
     }
   }
 
-  std::cout << "========== Scene3: Stress Test ==========\n";
-  std::cout << "Spheres: " << gridX * gridY << "\n";
-  std::cout << "Triangles per sphere: ~400\n";
-  std::cout << "Total triangles: ~" << gridX * gridY * 400 << "\n";
-  std::cout << "==========================================\n\n";
-
   // Animation variables
   float time = 0.0f;
   const float timeStep = 0.05f;
 
-  // Performance tracking
-  int frameCount = 0;
-  double totalFrameTime = 0.0;
-  auto frameStart = std::chrono::high_resolution_clock::now();
-
-  auto cycleStart = std::chrono::high_resolution_clock::now();
-  std::chrono::time_point<std::chrono::high_resolution_clock> cycleEnd;
+  auto start = std::chrono::high_resolution_clock::now();
+  std::chrono::time_point<std::chrono::high_resolution_clock> end;
   int cycle = 0;
+  int frameCount = 0;
   const int cycleFrames = 200; // Report every 200 frames
 
   bool running = true;
   while (running) {
-    frameStart = std::chrono::high_resolution_clock::now();
 
     renderer.canvas.checkInput();
     renderer.clear();
@@ -897,8 +825,7 @@ void scene3() {
     for (size_t i = 0; i < spherePositions.size(); i++) {
       const SpherePos &sp = spherePositions[i];
       float zOffset = 2.0f * std::sin(time + sp.phase);
-      sceneSoA[i].world = matrix::makeTranslation(sp.baseX, sp.baseY, sp.baseZ + zOffset) *
-                          matrix::makeRotateY(time * 0.5f);
+      sceneSoA[i].world = matrix::makeTranslation(sp.baseX, sp.baseY, sp.baseZ + zOffset) * matrix::makeRotateY(time * 0.5f);
     }
 
     if (renderer.canvas.keyPressed(VK_ESCAPE))
@@ -908,36 +835,14 @@ void scene3() {
     renderSoA_MT(renderer, sceneSoA, camera, L);
     renderer.present();
 
-    // Per-frame timing measurement
-    auto frameEnd = std::chrono::high_resolution_clock::now();
-    double frameTime = std::chrono::duration<double, std::milli>(frameEnd - frameStart).count();
-    totalFrameTime += frameTime;
     frameCount++;
-
-    // Print every cycleFrames to track performance
     if (frameCount % cycleFrames == 0) {
-      cycleEnd = std::chrono::high_resolution_clock::now();
-      double cycleTime = std::chrono::duration<double, std::milli>(cycleEnd - cycleStart).count();
-
-      double avgFrameTime = totalFrameTime / frameCount;
-      std::cout << "[Scene3] Frame " << frameCount << " | Cycle " << ++cycle
-                << ": " << cycleTime << " ms"
-                << " | Avg Frame: " << avgFrameTime << " ms"
-                << " | FPS: " << (1000.0 / avgFrameTime) << "\n";
-
-      cycleStart = std::chrono::high_resolution_clock::now();
+      end = std::chrono::high_resolution_clock::now();
+      std::cout << ++cycle << " :"
+                << std::chrono::duration<double, std::milli>(end - start).count()
+                << "ms\n";
+      start = std::chrono::high_resolution_clock::now();
     }
-  }
-
-  // Final statistics
-  if (frameCount > 0) {
-    double avgFrameTime = totalFrameTime / frameCount;
-    std::cout << "\n========== Scene3 Final Stats ==========\n";
-    std::cout << "Total Frames: " << frameCount << "\n";
-    std::cout << "Total Triangles: ~" << gridX * gridY * 400 << "\n";
-    std::cout << "Average Frame Time: " << avgFrameTime << " ms\n";
-    std::cout << "Average FPS: " << (1000.0 / avgFrameTime) << "\n";
-    std::cout << "=========================================\n";
   }
 }
 
@@ -948,7 +853,7 @@ int main() {
   ThreadPool::getInstance().start();
 
   // Uncomment the desired scene function to run
-  scene1();  // 40 cubes moving corridor
+  scene1(); // 40 cubes moving corridor
   //scene2();  // 6x8 cube grid with moving sphere
   //scene3(); // Stress test: 200 spheres (~80,000 triangles)
 
